@@ -1,0 +1,16 @@
+{
+  "name": "nova-support-live",
+  "version": "1.0.0",
+  "description": "Live Support Operations dashboard combining Intercom conversations and the Jira nova Support (NSP) board.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
