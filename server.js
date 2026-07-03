@@ -214,7 +214,7 @@ app.get("/api/data", async (_req, res) => {
 });
 
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
-app.use(express.static(path.join(__dirname, "public")));
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.use(express.static(__dirname));
+app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
 
 app.listen(PORT, () => console.log(`nova Support live dashboard on :${PORT}`));
