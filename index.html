@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nova Support — Live Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --intercom:#0FA3A3; --intercom-soft:#0FA3A322;
+  --jira:#5866E0; --jira-soft:#5866E022;
+  --ink:#1c1b1a; --muted:#6b6560; --line:#e7e1d8;
+  --card:rgba(255,255,255,.72); --card-solid:#fffdf9;
+  --good:#2e9e6b; --warn:#c98a20; --bad:#c8503b;
+  --shadow:0 8px 30px rgba(60,50,40,.08),0 2px 8px rgba(60,50,40,.05);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Inter,system-ui,sans-serif;color:var(--ink);
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #fef4e7 0%, transparent 55%),
+    radial-gradient(1000px 500px at 100% 0%, #eef0ff 0%, transparent 50%),
+    linear-gradient(180deg,#faf6ef 0%, #f5efe6 100%);
+  min-height:100vh;
+}
+.wrap{max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-family:Fraunces,serif;font-weight:600;font-size:34px;letter-spacing:-.5px;margin:0}
+.sub{color:var(--muted);font-size:14px;margin-top:4px}
+.asof{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:16px;margin:14px 0 22px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+/* range control */
+.range{display:flex;gap:6px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  padding:6px;border-radius:14px;box-shadow:var(--shadow);width:fit-content;margin-bottom:26px}
+.range button{border:0;background:transparent;font:inherit;font-size:13px;color:var(--muted);
+  padding:7px 13px;border-radius:9px;cursor:pointer;transition:.15s}
+.range button:hover{color:var(--ink)}
+.range button.active{background:var(--ink);color:#fff}
+.customrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-14px 0 26px}
+.customrow label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.customrow input[type=date]{font:inherit;font-size:13px;color:var(--ink);background:var(--card);
+  border:1px solid var(--line);border-radius:9px;padding:6px 10px;box-shadow:var(--shadow)}
+.customrow .apply{border:0;background:var(--ink);color:#fff;font:inherit;font-size:13px;
+  padding:7px 14px;border-radius:9px;cursor:pointer}
+.customrow .apply:disabled{opacity:.4;cursor:not-allowed}
+.customrow .warn{font-size:12px;color:var(--bad)}
+
+section{margin-bottom:34px}
+.sec-h{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+.sec-h h2{font-family:Fraunces,serif;font-weight:600;font-size:20px;margin:0}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border-radius:999px}
+.badge.ic{background:var(--intercom-soft);color:#0a7a7a}
+.badge.jr{background:var(--jira-soft);color:#3b46b0}
+
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:16px 18px;box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+.kpi .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+.kpi .val{font-family:Fraunces,serif;font-size:30px;font-weight:600;line-height:1}
+.kpi .foot{font-size:11.5px;color:var(--muted);margin-top:6px}
+
+.cols{grid-template-columns:1fr 1fr}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+
+.rank{list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.rank li:last-child{border-bottom:0}
+.rank li:hover .name{color:var(--intercom)}
+.rank .jira li:hover .name{color:var(--jira)}
+.rank .name{font-size:13.5px}
+.rank .bar{grid-column:1/-1;height:6px;border-radius:4px;background:#eee;overflow:hidden}
+.rank .bar > i{display:block;height:100%;border-radius:4px}
+.rank .cnt{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted)}
+.pct{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-left:6px}
+
+.mini{display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-size:12px;padding:5px 10px;border-radius:999px;background:#fff;border:1px solid var(--line);cursor:pointer}
+.chip b{font-family:'IBM Plex Mono',monospace}
+
+.trend{width:100%;height:120px;display:block}
+.trend path.area{opacity:.14}
+.trend path.line{fill:none;stroke-width:2}
+
+.insight{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.insight:last-child{border-bottom:0}
+.insight .ico{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;font-size:15px}
+.insight .t{font-size:13.5px;font-weight:600}
+.insight .d{font-size:12.5px;color:var(--muted);margin-top:2px}
+.note{font-size:11.5px;color:var(--muted);font-style:italic;margin-top:10px}
+
+/* paired bars */
+.pair{display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;align-items:center;padding:7px 0;font-size:13px}
+.pair .pname{color:var(--ink)}
+.pair .pb{height:16px;border-radius:5px;position:relative;background:#f0ece4}
+.pair .pb > i{position:absolute;top:0;bottom:0;border-radius:5px}
+.pair .pb.ic > i{left:0;background:var(--intercom)}
+.pair .pb.jr > i{right:0;background:var(--jira)}
+.pair .pb span{position:absolute;top:50%;transform:translateY(-50%);font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#fff;padding:0 6px}
+.pair .pb.ic span{left:0}.pair .pb.jr span{right:0}
+
+/* drawer */
+#scrim{position:fixed;inset:0;background:rgba(30,25,20,.28);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+#scrim.on{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;right:0;height:100%;width:min(460px,92vw);background:var(--card-solid);
+  box-shadow:-10px 0 40px rgba(50,40,30,.18);transform:translateX(100%);transition:.25s;z-index:50;
+  display:flex;flex-direction:column}
+#drawer.on{transform:none}
+.dh{padding:20px 22px;border-bottom:1px solid var(--line)}
+.dh .k{font-size:12px;color:var(--muted)}
+.dh .ttl{font-family:Fraunces,serif;font-size:20px;font-weight:600;margin-top:3px}
+.dclose{position:absolute;top:16px;right:18px;border:0;background:#f0ece4;border-radius:8px;
+  width:30px;height:30px;cursor:pointer;font-size:16px}
+.dlist{overflow:auto;padding:8px 12px 30px}
+.di{display:block;padding:12px 12px;border-radius:11px;text-decoration:none;color:inherit;border:1px solid transparent}
+.di:hover{background:#faf6ef;border-color:var(--line)}
+.di .r1{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.di .kk{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--jira)}
+.di .st{font-size:11px;padding:2px 8px;border-radius:999px;background:#f0ece4;color:var(--muted)}
+.di .sm{font-size:13px;margin-top:5px;line-height:1.35}
+.di .mt{font-size:11px;color:var(--muted);margin-top:5px;font-family:'IBM Plex Mono',monospace}
+
+.state{padding:60px 0;text-align:center;color:var(--muted)}
+.spinner{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--intercom);
+  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{background:#fff3f0;border:1px solid #f3c9bf;color:#a23a26;padding:16px 18px;border-radius:12px;font-size:13.5px}
+.refresh{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;
+  font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.refresh:hover{border-color:var(--intercom)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>nova Support — Live Operations</h1>
+      <div class="sub">Intercom conversations &amp; the Jira nova&nbsp;Support (NSP) board · 2026</div>
+    </div>
+    <div style="text-align:right">
+      <button class="refresh" id="refreshBtn">↻ Refresh</button>
+      <div class="asof" id="asof" style="margin-top:8px">—</div>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--intercom)"></i>Intercom</span>
+    <span><i class="dot" style="background:var(--jira)"></i>Jira · NSP</span>
+    <span id="scopeNote"></span>
+  </div>
+
+  <div class="range" id="range"></div>
+  <div class="customrow" id="customrow" style="display:none"></div>
+
+  <div id="content"><div class="state"><div class="spinner"></div>Fetching live data from Intercom and Jira…</div></div>
+</div>
+
+<div id="scrim" onclick="closeDrawer()"></div>
+<aside id="drawer" aria-hidden="true">
+  <div class="dh">
+    <button class="dclose" onclick="closeDrawer()">×</button>
+    <div class="k" id="drawerKind">—</div>
+    <div class="ttl" id="drawerTitle">—</div>
+  </div>
+  <div class="dlist" id="drawerList"></div>
+</aside>
+
+<script>
+const RANGES = [
+  ["today","Today"],["yesterday","Yesterday"],["last7","Last 7 days"],
+  ["last30","Last 30 days"],["thismonth","This month"],["lastmonth","Last month"],["all","All 2026"],
+  ["custom","Custom"]
+];
+let DATA=null, RANGE="last30";
+// custom range state (yyyy-mm-dd strings); default to a sensible window
+let customFrom="2026-01-01", customTo=new Date().toISOString().slice(0,10);
+
+const fmtInt = n => n.toLocaleString("en-US");
+function fmtDur(secs){
+  if(secs==null) return "—";
+  if(secs<60) return secs+"s";
+  if(secs<3600) return Math.round(secs/60)+"m";
+  if(secs<86400) return (secs/3600).toFixed(1)+"h";
+  return (secs/86400).toFixed(1)+"d";
+}
+function rangeBounds(key){
+  const now=new Date(); const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();
+  const startOf=dt=>new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()).getTime();
+  let lo,hi;
+  if(key==="today"){lo=startOf(now);hi=lo+864e5;}
+  else if(key==="yesterday"){hi=startOf(now);lo=hi-864e5;}
+  else if(key==="last7"){hi=startOf(now)+864e5;lo=hi-7*864e5;}
+  else if(key==="last30"){hi=startOf(now)+864e5;lo=hi-30*864e5;}
+  else if(key==="thismonth"){lo=new Date(y,m,1).getTime();hi=new Date(y,m+1,1).getTime();}
+  else if(key==="lastmonth"){lo=new Date(y,m-1,1).getTime();hi=new Date(y,m,1).getTime();}
+  else if(key==="custom"){
+    // parse yyyy-mm-dd as local dates; hi is exclusive end-of-day
+    const p=s=>{const [Y,M,D]=s.split("-").map(Number);return new Date(Y,M-1,D).getTime();};
+    lo=p(customFrom); hi=p(customTo)+864e5;
+  }
+  else {lo=new Date(2026,0,1).getTime();hi=new Date(2027,0,1).getTime();}
+  return [lo,hi];
+}
+const icTime = c => c.created*1000;
+const jrTime = t => new Date(t.created).getTime();
+
+function filterData(){
+  const [lo,hi]=rangeBounds(RANGE);
+  return {
+    ic: DATA.intercom.filter(c=>{const t=icTime(c);return t>=lo&&t<hi;}),
+    jr: DATA.jira.filter(t=>{const x=jrTime(t);return x>=lo&&x<hi;}),
+    lo,hi
+  };
+}
+
+function renderRange(){
+  const el=document.getElementById("range");
+  el.innerHTML="";
+  for(const [k,label] of RANGES){
+    const b=document.createElement("button");
+    b.textContent=label; b.className=k===RANGE?"active":"";
+    b.onclick=()=>{RANGE=k;render();};
+    el.appendChild(b);
+  }
+  renderCustomRow();
+}
+function renderCustomRow(){
+  const row=document.getElementById("customrow");
+  if(RANGE!=="custom"){row.style.display="none";row.innerHTML="";return;}
+  row.style.display="flex";
+  const valid = customFrom && customTo && customFrom<=customTo;
+  row.innerHTML=`
+    <label>From <input type="date" id="cFrom" value="${customFrom}" max="2026-12-31"></label>
+    <label>To <input type="date" id="cTo" value="${customTo}" max="2026-12-31"></label>
+    <button class="apply" id="cApply" ${valid?"":"disabled"}>Apply</button>
+    ${valid?"":'<span class="warn">Start date must be on or before end date.</span>'}`;
+  const from=document.getElementById("cFrom"), to=document.getElementById("cTo");
+  const sync=()=>{customFrom=from.value;customTo=to.value;
+    const ok=customFrom&&customTo&&customFrom<=customTo;
+    document.getElementById("cApply").disabled=!ok;
+    let w=row.querySelector(".warn");
+    if(!ok&&!w){w=document.createElement("span");w.className="warn";
+      w.textContent="Start date must be on or before end date.";row.appendChild(w);}
+    if(ok&&w)w.remove();
+  };
+  from.onchange=sync; to.onchange=sync;
+  document.getElementById("cApply").onclick=()=>{if(customFrom<=customTo)render();};
+}
+
+function rankList(entries,total,accent,kind){
+  const max=entries.length?entries[0][1]:1;
+  const top=entries.slice(0,10);
+  let html=`<ul class="rank ${kind==='jira'?'jira':''}">`;
+  for(const [name,cnt] of top){
+    const pct=total?Math.round(cnt/total*100):0;
+    html+=`<li onclick="drill('${kind}',${JSON.stringify(name).replace(/"/g,'&quot;')})">
+      <span class="name">${esc(name)}</span>
+      <span class="cnt">${cnt}<span class="pct">${pct}%</span></span>
+      <span class="bar"><i style="width:${Math.max(4,cnt/max*100)}%;background:${accent}"></i></span>
+    </li>`;
+  }
+  html+=`</ul>`;
+  if(entries.length>10) html+=`<div class="note">Showing top 10 of ${entries.length}.</div>`;
+  return html;
+}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function trendSVG(items,timeFn,accent){
+  const [lo,hi]=rangeBounds(RANGE);
+  const span=hi-lo; const buckets=Math.min(30,Math.max(6,Math.ceil(span/864e5)));
+  const arr=new Array(buckets).fill(0);
+  for(const it of items){const t=timeFn(it);const idx=Math.min(buckets-1,Math.floor((t-lo)/span*buckets));if(idx>=0)arr[idx]++;}
+  const max=Math.max(1,...arr); const W=600,H=120,pad=6;
+  const step=(W-pad*2)/(buckets-1||1);
+  const pts=arr.map((v,i)=>[pad+i*step, H-pad-(v/max)*(H-pad*2)]);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area=line+` L${(pad+(buckets-1)*step).toFixed(1)} ${H-pad} L${pad} ${H-pad} Z`;
+  return `<svg class="trend" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path class="area" d="${area}" fill="${accent}"/>
+    <path class="line" d="${line}" stroke="${accent}"/></svg>`;
+}
+
+function render(){
+  renderRange();
+  const {ic,jr}=filterData();
+
+  // Intercom overview
+  const icOpen=ic.filter(c=>c.state==="open"||c.open).length;
+  const icClosed=ic.filter(c=>c.state==="closed").length;
+  const ttfrs=ic.map(c=>c.ttfr).filter(v=>v!=null);
+  const ttfcs=ic.map(c=>c.ttfc).filter(v=>v!=null);
+  const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+
+  // CSAT (Intercom conversation ratings, 1-5). Only some convos are rated.
+  const rated=ic.filter(c=>c.rating!=null);
+  const csatAvg=rated.length?(rated.reduce((s,c)=>s+c.rating,0)/rated.length):null;
+  // "Satisfied" = 4 or 5, the standard CSAT positive threshold
+  const csatPositive=rated.filter(c=>c.rating>=4).length;
+  const csatPct=rated.length?Math.round(csatPositive/rated.length*100):null;
+  const ratingDist={5:0,4:0,3:0,2:0,1:0};
+  for(const c of rated) if(ratingDist[c.rating]!=null) ratingDist[c.rating]++;
+  const csatCoverage=ic.length?Math.round(rated.length/ic.length*100):0;
+
+  // Intercom tags
+  const tagC={}; for(const c of ic) for(const t of c.tags) tagC[t]=(tagC[t]||0)+1;
+  const tagEntries=Object.entries(tagC).sort((a,b)=>b[1]-a[1]);
+  const tagTotal=Object.values(tagC).reduce((a,b)=>a+b,0);
+
+  // Jira overview
+  const jrOpen=jr.filter(t=>t.statusCat!=="done").length;
+  const byStatus={},byPri={},byType={},byAsg={},byProd={};
+  for(const t of jr){bump(byStatus,t.status);bump(byPri,t.priority);bump(byType,t.type);
+    bump(byAsg,t.assignee||"Unassigned");bump(byProd,t.product);}
+
+  // Cross-system pairing (inferred)
+  const prodPairs={};
+  for(const [tag,cnt] of Object.entries(tagC)){
+    const prod=DATA.tagmap[tag]; if(!prod)continue;
+    prodPairs[prod]=prodPairs[prod]||{ic:0,jr:0}; prodPairs[prod].ic+=cnt;
+  }
+  for(const [prod,cnt] of Object.entries(byProd)){
+    prodPairs[prod]=prodPairs[prod]||{ic:0,jr:0}; prodPairs[prod].jr+=cnt;
+  }
+  const pairRows=Object.entries(prodPairs).sort((a,b)=>(b[1].ic+b[1].jr)-(a[1].ic+a[1].jr)).slice(0,8);
+  const pairMaxIc=Math.max(1,...pairRows.map(r=>r[1].ic));
+  const pairMaxJr=Math.max(1,...pairRows.map(r=>r[1].jr));
+
+  const topTag=tagEntries[0], topProd=Object.entries(byProd).sort((a,b)=>b[1]-a[1])[0];
+  const highPri=jr.filter(t=>t.priority==="High"&&t.statusCat!=="done").length;
+
+  document.getElementById("content").innerHTML = `
+    <!-- INTERCOM OVERVIEW -->
+    <section>
+      <div class="sec-h"><h2>Intercom Overview</h2><span class="badge ic">conversations</span></div>
+      <div class="grid kpis">
+        <div class="card kpi"><div class="label">Total conversations</div><div class="val">${fmtInt(ic.length)}</div><div class="foot">in range</div></div>
+        <div class="card kpi"><div class="label">Open</div><div class="val">${fmtInt(icOpen)}</div><div class="foot">${ic.length?Math.round(icOpen/ic.length*100):0}% of total</div></div>
+        <div class="card kpi"><div class="label">Closed</div><div class="val">${fmtInt(icClosed)}</div><div class="foot">${ic.length?Math.round(icClosed/ic.length*100):0}% of total</div></div>
+        <div class="card kpi"><div class="label">Avg first response</div><div class="val">${fmtDur(avg(ttfrs))}</div><div class="foot">${ttfrs.length} measured</div></div>
+        <div class="card kpi"><div class="label">Avg resolution</div><div class="val">${fmtDur(avg(ttfcs))}</div><div class="foot">${ttfcs.length} measured</div></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="label" style="font-size:12px;color:var(--muted);margin-bottom:4px">Volume trend</div>
+        ${trendSVG(ic,icTime,"#0FA3A3")}
+      </div>
+    </section>
+
+    <!-- CSAT -->
+    <section>
+      <div class="sec-h"><h2>Customer Satisfaction (CSAT)</h2><span class="badge ic">conversation ratings</span></div>
+      ${rated.length?`
+      <div class="grid kpis">
+        <div class="card kpi"><div class="label">Avg CSAT</div><div class="val">${csatAvg.toFixed(2)}<span style="font-size:15px;color:var(--muted)"> / 5</span></div><div class="foot">${rated.length} rated</div></div>
+        <div class="card kpi"><div class="label">Satisfied (4–5)</div><div class="val">${csatPct}%</div><div class="foot">${csatPositive} of ${rated.length}</div></div>
+        <div class="card kpi"><div class="label">Rated conversations</div><div class="val">${fmtInt(rated.length)}</div><div class="foot">${csatCoverage}% of all convos</div></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="label" style="margin-bottom:8px">Rating distribution</div>
+        ${[5,4,3,2,1].map(star=>{
+          const cnt=ratingDist[star], pct=rated.length?Math.round(cnt/rated.length*100):0;
+          const max=Math.max(1,...Object.values(ratingDist));
+          return `<div class="pair" style="grid-template-columns:70px 1fr auto">
+            <span class="pname">${star} ★</span>
+            <span class="bar" style="height:10px"><i style="width:${Math.max(2,cnt/max*100)}%;background:var(--intercom)"></i></span>
+            <span class="cnt">${cnt}<span class="pct">${pct}%</span></span></div>`;
+        }).join("")}
+      </div>
+      <div class="note">CSAT reflects the ${csatCoverage}% of conversations that received a rating; customers rate voluntarily, so this is a sample, not all contacts.</div>
+      `:`<div class="card"><div style="color:var(--muted);font-size:13px;padding:14px 0">No CSAT ratings in this range.</div></div>`}
+    </section>
+
+    <!-- INTERCOM TAGS -->
+    <section>
+      <div class="sec-h"><h2>Top Intercom Tags</h2><span class="badge ic">click to see conversations</span></div>
+      <div class="card">${tagEntries.length?rankList(tagEntries,tagTotal,"var(--intercom)","tag"):emptyMsg()}</div>
+    </section>
+
+    <!-- JIRA OVERVIEW -->
+    <section>
+      <div class="sec-h"><h2>Jira Overview</h2><span class="badge jr">NSP board</span></div>
+      <div class="grid kpis">
+        <div class="card kpi"><div class="label">Total tickets</div><div class="val">${fmtInt(jr.length)}</div><div class="foot">in range</div></div>
+        <div class="card kpi"><div class="label">Open</div><div class="val">${fmtInt(jrOpen)}</div><div class="foot">not done</div></div>
+        <div class="card kpi"><div class="label">High priority open</div><div class="val">${fmtInt(highPri)}</div><div class="foot">needs attention</div></div>
+        <div class="card kpi"><div class="label">Done</div><div class="val">${fmtInt(jr.length-jrOpen)}</div><div class="foot">${jr.length?Math.round((jr.length-jrOpen)/jr.length*100):0}% resolved</div></div>
+      </div>
+      <div class="grid cols" style="margin-top:16px">
+        <div class="card"><div class="label" style="margin-bottom:8px">By status</div>${rankList(sortObj(byStatus),jr.length,"var(--jira)","status")}</div>
+        <div class="card"><div class="label" style="margin-bottom:8px">By priority</div>${rankList(sortObj(byPri),jr.length,"var(--jira)","priority")}</div>
+        <div class="card"><div class="label" style="margin-bottom:8px">By type</div>${rankList(sortObj(byType),jr.length,"var(--jira)","type")}</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="label" style="font-size:12px;color:var(--muted);margin-bottom:4px">Ticket volume trend</div>
+        ${trendSVG(jr,jrTime,"#5866E0")}
+      </div>
+    </section>
+
+    <!-- JIRA PRODUCT GROUPING -->
+    <section>
+      <div class="sec-h"><h2>Tickets by Application</h2><span class="badge jr">click to see tickets</span></div>
+      <div class="card">${rankList(sortObj(byProd),jr.length,"var(--jira)","product")}
+      <div class="note">Application grouping is inferred from ticket summaries (the NSP board has no component field set).</div></div>
+    </section>
+
+    <!-- CROSS SYSTEM -->
+    <section>
+      <div class="sec-h"><h2>Cross-System Insights</h2></div>
+      <div class="grid cols">
+        <div class="card">
+          <div class="label" style="margin-bottom:10px">Intercom volume vs Jira volume by application</div>
+          ${pairRows.length?pairRows.map(([p,v])=>`
+            <div class="pair">
+              <span class="pname">${esc(p)}</span>
+              <span class="pb ic"><i style="width:${v.ic/pairMaxIc*100}%"></i><span>${v.ic||""}</span></span>
+              <span class="pb jr"><i style="width:${v.jr/pairMaxJr*100}%"></i><span>${v.jr||""}</span></span>
+            </div>`).join(""):emptyMsg()}
+          <div class="note">Links are <b>inferred</b> by matching Intercom tag names to Jira products — not a direct system link.</div>
+        </div>
+        <div class="card">
+          <div class="insight"><div class="ico" style="background:var(--intercom-soft)">💬</div>
+            <div><div class="t">Most contacted</div><div class="d">${topTag?esc(topTag[0])+" — "+topTag[1]+" conversations":"No tagged conversations in range"}</div></div></div>
+          <div class="insight"><div class="ico" style="background:var(--jira-soft)">🛠️</div>
+            <div><div class="t">Most engineering work</div><div class="d">${topProd?esc(topProd[0])+" — "+topProd[1]+" tickets":"No tickets in range"}</div></div></div>
+          <div class="insight"><div class="ico" style="background:#fdeede">⚠️</div>
+            <div><div class="t">Watch signal</div><div class="d">${highPri} high-priority NSP ticket${highPri===1?"":"s"} still open${topTag&&highPri?". Top support theme: "+esc(topTag[0])+".":"."}</div></div></div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function sortObj(o){return Object.entries(o).sort((a,b)=>b[1]-a[1]);}
+function bump(o,k){if(k==null)return;o[k]=(o[k]||0)+1;}
+function emptyMsg(){return `<div style="color:var(--muted);font-size:13px;padding:14px 0">No data in this range.</div>`;}
+
+// ---- drill-down drawer ----
+function drill(kind,val){
+  const {ic,jr}=filterData();
+  let title=val,kindLabel="",rows="";
+  if(kind==="tag"){
+    kindLabel="Intercom conversations tagged";
+    const list=ic.filter(c=>c.tags.includes(val)).sort((a,b)=>b.created-a.created);
+    rows=list.map(c=>`<a class="di" href="${c.url}" target="_blank" rel="noopener">
+      <div class="r1"><span class="kk" style="color:var(--intercom)">${c.id}</span>
+      <span class="st">${esc(c.state)}</span></div>
+      <div class="sm">${c.tags.map(esc).join(", ")||"—"}</div>
+      <div class="mt">${new Date(c.created*1000).toLocaleDateString()} · first reply ${fmtDur(c.ttfr)}</div></a>`).join("")||emptyMsg();
+  } else {
+    const map={status:"status",priority:"priority",type:"type",assignee:"assignee",product:"application"};
+    kindLabel="NSP tickets · "+(map[kind]||kind);
+    const match=t=>kind==="assignee"?((t.assignee||"Unassigned")===val):t[kind]===val;
+    const list=jr.filter(match).sort((a,b)=>new Date(b.created)-new Date(a.created));
+    rows=list.map(t=>`<a class="di" href="${t.url}" target="_blank" rel="noopener">
+      <div class="r1"><span class="kk">${t.key}</span><span class="st">${esc(t.status)}</span></div>
+      <div class="sm">${esc(t.summary)}</div>
+      <div class="mt">${esc(t.type)} · ${esc(t.priority||"—")} · ${new Date(t.created).toLocaleDateString()}</div></a>`).join("")||emptyMsg();
+  }
+  document.getElementById("drawerKind").textContent=kindLabel;
+  document.getElementById("drawerTitle").textContent=title;
+  document.getElementById("drawerList").innerHTML=rows;
+  document.getElementById("drawer").classList.add("on");
+  document.getElementById("scrim").classList.add("on");
+}
+function closeDrawer(){document.getElementById("drawer").classList.remove("on");document.getElementById("scrim").classList.remove("on");}
+
+async function load(){
+  document.getElementById("content").innerHTML=`<div class="state"><div class="spinner"></div>Fetching live data from Intercom and Jira…</div>`;
+  try{
+    const res=await fetch("/api/data",{cache:"no-store"});
+    const json=await res.json();
+    if(!json.ok) throw new Error(json.error||"Fetch failed");
+    DATA=json;
+    document.getElementById("asof").textContent="Live · fetched "+new Date(json.fetchedAt).toLocaleString();
+    document.getElementById("scopeNote").textContent="· Jira scope: project = "+json.scope.jiraProject;
+    render();
+  }catch(e){
+    document.getElementById("content").innerHTML=`<div class="err"><b>Couldn't load live data.</b><br>${esc(e.message)}<br><br>
+    Check that INTERCOM_TOKEN, JIRA_EMAIL and JIRA_API_TOKEN are set correctly in the server environment.</div>`;
+  }
+}
+document.getElementById("refreshBtn").onclick=load;
+load();
+</script>
+</body>
+</html>
